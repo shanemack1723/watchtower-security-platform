@@ -128,7 +128,16 @@ Update these values inside `agent-config.json`:
 
 The agent key must exactly match the value in `.env`.
 
-### 5. Create the first administrator
+### 5. Apply the database migrations
+
+Create or update the database schema:
+
+```powershell
+python -m alembic upgrade head
+```
+
+
+### 6. Create the first administrator
 
 Create the local administrator account:
 
@@ -140,7 +149,7 @@ Enter a username and a password containing at least 12 characters when prompted.
 
 Only use this command for the initial administrator. Additional accounts can be created through the protected admin API.
 
-### 6. Start the API
+### 7. Start the API
 
 ```powershell
 python -m uvicorn backend.main:app --reload

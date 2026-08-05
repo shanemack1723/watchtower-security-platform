@@ -1,5 +1,5 @@
 from pathlib import Path
-from contextlib import asynccontextmanager
+
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, RedirectResponse
@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend import models
 from backend.auth_security import get_current_user
-from backend.database import create_database, get_database
+from backend.database import get_database
 from backend.routes.devices import router as devices_router
 from backend.routes.events import router as events_router
 from backend.routes.alerts import router as alerts_router
@@ -20,17 +20,10 @@ from backend.routes.investigations import router as investigations_router
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DASHBOARD_DIRECTORY = PROJECT_ROOT / "dashboard"
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    create_database()
-    yield
-
-
 app = FastAPI(
     title="Watchtower Security Platform",
     description="A Windows security monitoring and incident-response platform.",
     version="0.1.0",
-    lifespan=lifespan,
 )
 
 app.mount(
