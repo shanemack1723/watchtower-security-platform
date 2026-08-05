@@ -17,3 +17,4 @@ watchtower.db
 .vscode/
 .DS_Store
 Thumbs.db
+migration-test.db
