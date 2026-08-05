@@ -4,6 +4,10 @@ Watchtower is a Windows security-monitoring and incident-response platform built
 
 A PowerShell endpoint agent collects selected Windows Security events and sends them to an authenticated API. Watchtower stores the events, evaluates configurable detection rules, creates security alerts, and presents the results through a responsive SOC dashboard.
 
+## Dashboard
+
+![Watchtower SOC dashboard displaying security alerts, Windows events, and monitored devices](docs/watchtower-dashboard.png)
+
 ## Features
 
 - Authenticated Windows agent registration
