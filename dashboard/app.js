@@ -18,7 +18,27 @@ function formatDate(value) {
         return "Unknown";
     }
 
-    return new Date(value).toLocaleString();
+    const includesTimezone =
+        value.endsWith("Z") ||
+        /[+-]\d{2}:\d{2}$/.test(value);
+
+    const normalizedValue = includesTimezone
+        ? value
+        : `${value}Z`;
+
+    const date = new Date(normalizedValue);
+
+    if (Number.isNaN(date.getTime())) {
+        return "Invalid date";
+    }
+
+    return date.toLocaleString(
+        undefined,
+        {
+            dateStyle: "short",
+            timeStyle: "medium",
+        }
+    );
 }
 
 
