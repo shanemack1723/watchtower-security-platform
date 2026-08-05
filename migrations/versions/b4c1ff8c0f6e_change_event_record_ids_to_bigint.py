@@ -19,26 +19,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table(
-        "security_events",
-        recreate="always",
-    ) as batch_op:
-        batch_op.alter_column(
-            "record_id",
-            existing_type=sa.Integer(),
-            type_=sa.BigInteger(),
-            existing_nullable=True,
-        )
+    op.execute(
+        """
+        ALTER TABLE security_events
+        ALTER COLUMN record_id TYPE BIGINT
+        USING record_id::BIGINT
+        """
+    )
 
 
 def downgrade() -> None:
-    with op.batch_alter_table(
-        "security_events",
-        recreate="always",
-    ) as batch_op:
-        batch_op.alter_column(
-            "record_id",
-            existing_type=sa.BigInteger(),
-            type_=sa.Integer(),
-            existing_nullable=True,
-        )
+    op.execute(
+        """
+        ALTER TABLE security_events
+        ALTER COLUMN record_id TYPE INTEGER
+        USING record_id::INTEGER
+        """
+    )

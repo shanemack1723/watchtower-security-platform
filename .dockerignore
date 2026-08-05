@@ -1,0 +1,11 @@
+.venv/
+.git/
+.github/
+.pytest_cache/
+__pycache__/
+*.pyc
+.env
+watchtower.db
+migration-test.db
+agent/agent-config.json
+agent/agent-state.json
