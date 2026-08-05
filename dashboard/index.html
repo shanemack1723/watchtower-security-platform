@@ -26,7 +26,27 @@
             <a class="nav-link" href="#alerts">Alerts</a>
             <a class="nav-link" href="#events">Security Events</a>
             <a class="nav-link" href="#devices">Devices</a>
+            <a
+    id="audit-navigation"
+    class="nav-link"
+    href="#audit"
+    hidden
+>
+    Audit Log
+</a>
         </nav>
+
+<div class="analyst-profile">
+    <div class="analyst-details">
+        <span class="analyst-label">Signed in as</span>
+        <strong id="analyst-name">Loading...</strong>
+        <span id="analyst-role">Analyst</span>
+    </div>
+
+    <button id="logout-button" type="button">
+        Sign out
+    </button>
+</div>
 
         <div class="sidebar-status">
             <span class="status-dot"></span>
@@ -148,6 +168,37 @@
                 <p class="empty-state">Loading devices...</p>
             </div>
         </section>
+<section id="audit" class="panel" hidden>
+    <div class="panel-heading">
+        <div>
+            <p class="eyebrow">Administrative oversight</p>
+            <h3>Audit log</h3>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Resource</th>
+                    <th>Details</th>
+                    <th>Source IP</th>
+                </tr>
+            </thead>
+
+            <tbody id="audit-table-body">
+                <tr>
+                    <td colspan="6">
+                        Loading audit history...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
     </main>
 
     <script src="/static/app.js"></script>

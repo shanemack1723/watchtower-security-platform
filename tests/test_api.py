@@ -7,9 +7,14 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from backend.database import Base, get_database
 from backend.main import app
+from backend.auth_security import hash_password
+from backend.models import User
 
 
 TEST_API_KEY = "watchtower-test-api-key"
+TEST_JWT_SECRET = "watchtower-test-jwt-secret-at-least-32-characters"
+TEST_ADMIN_USERNAME = "testadmin"
+TEST_ADMIN_PASSWORD = "TestAdminPassword123!"
 
 AGENT_HEADERS = {
     "X-Watchtower-API-Key": TEST_API_KEY,
@@ -34,6 +39,11 @@ def client(
         TEST_API_KEY,
     )
 
+    monkeypatch.setenv(
+        "WATCHTOWER_JWT_SECRET",
+        TEST_JWT_SECRET,
+    )
+
     database_path = tmp_path / "watchtower-test.db"
 
     test_engine = create_engine(
@@ -49,6 +59,21 @@ def client(
 
     Base.metadata.create_all(bind=test_engine)
 
+    setup_database = TestSession()
+
+    try:
+        setup_database.add(
+            User(
+                username=TEST_ADMIN_USERNAME,
+                password_hash=hash_password(TEST_ADMIN_PASSWORD),
+                role="admin",
+                is_active=True,
+            )
+        )
+        setup_database.commit()
+    finally:
+        setup_database.close()
+
     def override_database() -> Generator[Session, None, None]:
         database = TestSession()
 
@@ -60,6 +85,15 @@ def client(
     app.dependency_overrides[get_database] = override_database
 
     with TestClient(app) as test_client:
+        login_response = test_client.post(
+            "/auth/login",
+            json={
+                "username": TEST_ADMIN_USERNAME,
+                "password": TEST_ADMIN_PASSWORD,
+            },
+        )
+
+        assert login_response.status_code == 200
         yield test_client
 
     app.dependency_overrides.clear()
@@ -197,3 +231,55 @@ def test_five_failures_create_high_correlation_alert(
 
     assert len(correlation_alerts) == 1
     assert correlation_alerts[0]["severity"] == "high"
+
+def test_authenticated_admin_can_view_profile(
+    client: TestClient,
+):
+    response = client.get("/auth/me")
+
+    assert response.status_code == 200
+    assert response.json()["username"] == TEST_ADMIN_USERNAME
+    assert response.json()["role"] == "admin"
+
+
+def test_invalid_password_is_rejected(
+    client: TestClient,
+):
+    response = client.post(
+        "/auth/login",
+        json={
+            "username": TEST_ADMIN_USERNAME,
+            "password": "IncorrectPassword123!",
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_logout_protects_dashboard_data(
+    client: TestClient,
+):
+    logout_response = client.post("/auth/logout")
+
+    assert logout_response.status_code == 204
+
+    alerts_response = client.get("/alerts/")
+    events_response = client.get("/events/")
+    devices_response = client.get("/devices/")
+
+    assert alerts_response.status_code == 401
+    assert events_response.status_code == 401
+    assert devices_response.status_code == 401
+
+
+def test_admin_can_view_audit_log(
+    client: TestClient,
+):
+    response = client.get("/audit/")
+
+    assert response.status_code == 200
+
+    audit_logs = response.json()
+    actions = [entry["action"] for entry in audit_logs]
+
+    assert "authentication.succeeded" in actions

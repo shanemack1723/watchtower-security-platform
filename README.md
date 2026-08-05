@@ -25,6 +25,13 @@ A PowerShell endpoint agent collects selected Windows Security events and sends 
 - Safe failed-login simulation
 - Automated API and detection tests
 - GitHub Actions continuous integration
+- Analyst authentication with Argon2 password hashing
+- Signed JWT sessions stored in HttpOnly cookies
+- Role-based access control for analyst and administrator accounts
+- Protected SOC dashboard and read-only telemetry endpoints
+- Administrator-only user management and audit-log access
+- Audit history for logins, logouts, account creation, and alert-status changes
+- Logged-in analyst identity and secure sign-out controls
 
 ## Architecture
 
@@ -116,7 +123,19 @@ Update these values inside `agent-config.json`:
 
 The agent key must exactly match the value in `.env`.
 
-### 5. Start the API
+### 5. Create the first administrator
+
+Create the local administrator account:
+
+```powershell
+python -m scripts.create_admin
+```
+
+Enter a username and a password containing at least 12 characters when prompted. The password is hashed with Argon2 and is never stored as plain text.
+
+Only use this command for the initial administrator. Additional accounts can be created through the protected admin API.
+
+### 6. Start the API
 
 ```powershell
 python -m uvicorn backend.main:app --reload
@@ -215,3 +234,5 @@ watchtower-security-platform/
 - Additional correlation rules
 - Agent heartbeat and offline-device detection
 - Azure deployment
+- Analyst authentication and role-based access control
+- Incident notes and audit history

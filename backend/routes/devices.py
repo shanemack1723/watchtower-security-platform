@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from backend.auth_security import get_current_user
 from backend.database import get_database
 from backend.models import Device
 from backend.schemas import DeviceRegistration, DeviceResponse
@@ -60,6 +61,7 @@ def register_device(
 @router.get(
     "/",
     response_model=list[DeviceResponse],
+    dependencies=[Depends(get_current_user)],
 )
 def list_devices(database: DatabaseSession):
     devices = database.scalars(

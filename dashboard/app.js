@@ -326,3 +326,108 @@ refreshButton.addEventListener("click", loadDashboard);
 loadDashboard();
 
 setInterval(loadDashboard, 30000);
+
+async function loadAuditLogs() {
+    const auditLogs = await fetchJson("/audit/?limit=100");
+    const tableBody = document.getElementById("audit-table-body");
+
+    tableBody.replaceChildren();
+
+    if (auditLogs.length === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+
+        cell.colSpan = 6;
+        cell.textContent = "No audit activity has been recorded.";
+
+        row.appendChild(cell);
+        tableBody.appendChild(row);
+        return;
+    }
+
+    auditLogs.forEach((entry) => {
+        const row = document.createElement("tr");
+
+        const values = [
+            formatDate(entry.created_at),
+            entry.user_id ? `User #${entry.user_id}` : "System",
+            entry.action,
+            entry.resource_id
+                ? `${entry.resource_type} #${entry.resource_id}`
+                : entry.resource_type,
+            entry.details
+                ? JSON.stringify(entry.details)
+                : "—",
+            entry.source_ip || "—",
+        ];
+
+        values.forEach((value) => {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            row.appendChild(cell);
+        });
+
+        tableBody.appendChild(row);
+    });
+}
+
+async function loadCurrentUser() {
+    const response = await fetch("/auth/me");
+
+    if (response.status === 401) {
+        window.location.replace("/login");
+        return;
+    }
+
+    if (!response.ok) {
+        throw new Error("Unable to load the signed-in user.");
+    }
+
+    const user = await response.json();
+
+    document.getElementById("analyst-name").textContent = user.username;
+    document.getElementById("analyst-role").textContent =
+        user.role.charAt(0).toUpperCase() + user.role.slice(1);
+    if (user.role === "admin") {
+    document
+        .getElementById("audit-navigation")
+        .removeAttribute("hidden");
+
+    document
+        .getElementById("audit")
+        .removeAttribute("hidden");
+
+    await loadAuditLogs();
+}
+}
+
+async function logout() {
+    const logoutButton = document.getElementById("logout-button");
+    logoutButton.disabled = true;
+    logoutButton.textContent = "Signing out...";
+
+    try {
+        const response = await fetch("/auth/logout", {
+            method: "POST",
+        });
+
+        if (!response.ok) {
+            throw new Error("Unable to sign out.");
+        }
+
+        window.location.replace("/login");
+    } catch (error) {
+        logoutButton.disabled = false;
+        logoutButton.textContent = "Sign out";
+        alert(error.message);
+    }
+}
+
+document
+    .getElementById("logout-button")
+    .addEventListener("click", logout);
+
+loadCurrentUser().catch((error) => {
+    console.error(error);
+    window.location.replace("/login");
+});

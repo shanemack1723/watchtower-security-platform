@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>Sign In | Watchtower</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body class="login-page">
+    <main class="login-container">
+        <section class="login-card">
+            <div class="login-brand">
+                <div class="brand-icon">W</div>
+
+                <div>
+                    <h1>Watchtower</h1>
+                    <p>Security Operations Center</p>
+                </div>
+            </div>
+
+            <div class="login-heading">
+                <p class="eyebrow">Analyst access</p>
+                <h2>Sign in</h2>
+                <p>
+                    Authenticate to investigate alerts and monitor
+                    Windows endpoints.
+                </p>
+            </div>
+
+            <form id="login-form">
+                <label for="username">Username</label>
+                <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    minlength="3"
+                    maxlength="100"
+                    autocomplete="username"
+                    required
+                >
+
+                <label for="password">Password</label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    minlength="12"
+                    maxlength="128"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <p
+                    id="login-error"
+                    class="login-error"
+                    role="alert"
+                    hidden
+                >
+                    Invalid username or password.
+                </p>
+
+                <button id="login-button" type="submit">
+                    Sign in to Watchtower
+                </button>
+            </form>
+
+            <p class="login-security-note">
+                Authentication activity is recorded in the
+                Watchtower audit trail.
+            </p>
+        </section>
+    </main>
+
+    <script src="/static/login.js"></script>
+</body>
+</html>

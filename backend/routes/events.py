@@ -9,6 +9,7 @@ from backend.models import Device, SecurityEvent
 from backend.schemas import SecurityEventCreate, SecurityEventResponse
 from backend.detection_engine import evaluate_security_event
 from backend.security import require_agent_api_key
+from backend.auth_security import get_current_user
 
 
 router = APIRouter(
@@ -73,6 +74,7 @@ def create_security_event(
 @router.get(
     "/",
     response_model=list[SecurityEventResponse],
+    dependencies=[Depends(get_current_user)],
 )
 def list_security_events(
     database: DatabaseSession,

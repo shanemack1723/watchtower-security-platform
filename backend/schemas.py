@@ -71,3 +71,56 @@ class AlertStatusUpdate(BaseModel):
         "resolved",
         "dismissed",
     ]
+
+class LoginRequest(BaseModel):
+    username: str = Field(
+        min_length=3,
+        max_length=100,
+    )
+
+    password: str = Field(
+        min_length=12,
+        max_length=128,
+    )
+
+
+class UserCreate(BaseModel):
+    username: str = Field(
+        min_length=3,
+        max_length=100,
+        pattern=r"^[a-zA-Z0-9._-]+$",
+    )
+
+    password: str = Field(
+        min_length=12,
+        max_length=128,
+    )
+
+    role: Literal[
+        "analyst",
+        "admin",
+    ] = "analyst"
+
+
+class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    role: str
+    is_active: bool
+    created_at: datetime
+    last_login_at: datetime | None
+
+
+class AuditLogResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int | None
+    action: str
+    resource_type: str
+    resource_id: str | None
+    details: dict | None
+    source_ip: str | None
+    created_at: datetime

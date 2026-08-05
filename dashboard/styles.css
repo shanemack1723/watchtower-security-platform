@@ -433,3 +433,175 @@ tbody tr:hover {
     background: var(--panel-light);
     color: var(--text);
 }
+
+.login-page {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 24px;
+    background:
+        radial-gradient(
+            circle at top,
+            rgb(79 140 255 / 16%),
+            transparent 38%
+        ),
+        var(--background);
+}
+
+.login-container {
+    width: 100%;
+    max-width: 440px;
+}
+
+.login-card {
+    padding: 34px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--panel);
+    box-shadow: 0 24px 70px rgb(0 0 0 / 35%);
+}
+
+.login-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 34px;
+}
+
+.login-brand h1 {
+    margin: 0;
+    font-size: 19px;
+}
+
+.login-brand p {
+    margin: 3px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.login-heading {
+    margin-bottom: 26px;
+}
+
+.login-heading h2 {
+    margin: 6px 0 8px;
+    font-size: 28px;
+}
+
+.login-heading > p:last-child {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+#login-form {
+    display: flex;
+    flex-direction: column;
+}
+
+#login-form label {
+    margin: 0 0 7px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#login-form input {
+    width: 100%;
+    margin-bottom: 18px;
+    padding: 12px 13px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    outline: none;
+    background: var(--panel-light);
+    color: var(--text);
+    font: inherit;
+    transition:
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+}
+
+#login-form input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgb(79 140 255 / 14%);
+}
+
+#login-form button {
+    margin-top: 6px;
+}
+
+.login-error {
+    margin: 0 0 16px;
+    padding: 11px 12px;
+    border: 1px solid rgb(248 113 113 / 30%);
+    border-radius: 8px;
+    background: rgb(248 113 113 / 9%);
+    color: var(--red);
+    font-size: 13px;
+}
+
+.login-security-note {
+    margin: 24px 0 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.analyst-profile {
+    margin-top: auto;
+    padding: 16px;
+    border: 1px solid #263853;
+    border-radius: 10px;
+    background: #101b2e;
+}
+
+.analyst-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.analyst-label {
+    color: #82a6d3;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+#analyst-name {
+    color: #f7faff;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+#analyst-role {
+    color: #8eb6e8;
+    font-size: 12px;
+}
+
+#logout-button {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #36537a;
+    border-radius: 7px;
+    background: #172945;
+    color: #eaf2ff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#logout-button:hover {
+    border-color: #4d87ff;
+    background: #1d3760;
+}
+
+#logout-button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
