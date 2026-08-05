@@ -1,0 +1,15 @@
+{
+  "api_base_url": "http://127.0.0.1:8000",
+  "device_id": "REPLACE-WITH-UNIQUE-DEVICE-ID",
+  "agent_version": "0.1.0",
+  "lookback_minutes": 15,
+  "monitored_event_ids": [
+    4624,
+    4625,
+    4720,
+    4726,
+    4732,
+    1102
+  ],
+  "api_key": "replace-with-the-agent-api-key"
+}

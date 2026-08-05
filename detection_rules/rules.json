@@ -1,0 +1,46 @@
+[
+  {
+    "rule_id": "WIN-FAILED-LOGIN",
+    "windows_event_id": 4625,
+    "title": "Failed Windows Login",
+    "description": "Windows recorded an unsuccessful account login attempt.",
+    "severity": "medium"
+  },
+  {
+    "rule_id": "WIN-ACCOUNT-CREATED",
+    "windows_event_id": 4720,
+    "title": "Windows Account Created",
+    "description": "A new Windows user account was created.",
+    "severity": "high"
+  },
+  {
+    "rule_id": "WIN-ACCOUNT-DELETED",
+    "windows_event_id": 4726,
+    "title": "Windows Account Deleted",
+    "description": "A Windows user account was deleted.",
+    "severity": "high"
+  },
+  {
+    "rule_id": "WIN-LOCAL-GROUP-MEMBER-ADDED",
+    "windows_event_id": 4732,
+    "title": "Member Added to Local Security Group",
+    "description": "An account was added to a local security-enabled group.",
+    "severity": "high"
+  },
+  {
+    "rule_id": "WIN-SECURITY-LOG-CLEARED",
+    "windows_event_id": 1102,
+    "title": "Windows Security Log Cleared",
+    "description": "The Windows Security audit log was cleared.",
+    "severity": "critical"
+  },
+  {
+    "rule_id": "WIN-REPEATED-FAILED-LOGINS",
+    "windows_event_id": 4625,
+    "title": "Repeated Windows Login Failures",
+    "description": "Five failed Windows logins occurred on the same device within ten minutes.",
+    "severity": "high",
+    "threshold": 5,
+    "window_minutes": 10
+  }
+]

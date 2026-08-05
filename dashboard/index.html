@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>Watchtower Security Platform</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">W</div>
+
+            <div>
+                <h1>Watchtower</h1>
+                <p>Security Platform</p>
+            </div>
+        </div>
+
+        <nav>
+            <a class="nav-link active" href="#overview">Overview</a>
+            <a class="nav-link" href="#alerts">Alerts</a>
+            <a class="nav-link" href="#events">Security Events</a>
+            <a class="nav-link" href="#devices">Devices</a>
+        </nav>
+
+        <div class="sidebar-status">
+            <span class="status-dot"></span>
+            API connected
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">Security Operations Center</p>
+                <h2>Overview</h2>
+            </div>
+
+            <button id="refresh-button" type="button">
+                Refresh data
+            </button>
+        </header>
+
+        <section id="overview" class="metrics-grid">
+            <article class="metric-card">
+                <p>Open alerts</p>
+                <strong id="open-alert-count">0</strong>
+                <span>Requiring review</span>
+            </article>
+
+            <article class="metric-card critical-card">
+                <p>Critical alerts</p>
+                <strong id="critical-alert-count">0</strong>
+                <span>Highest priority</span>
+            </article>
+
+            <article class="metric-card">
+                <p>Security events</p>
+                <strong id="event-count">0</strong>
+                <span>Recently received</span>
+            </article>
+
+            <article class="metric-card">
+                <p>Monitored devices</p>
+                <strong id="device-count">0</strong>
+                <span>Registered agents</span>
+            </article>
+        </section>
+
+        <section id="alerts" class="panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">Detection queue</p>
+                    <h3>Recent alerts</h3>
+                </div>
+
+                <span id="last-updated">Not updated</span>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Alert</th>
+                            <th>Rule</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="alerts-table-body">
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                Loading alerts...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="events" class="panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">Endpoint telemetry</p>
+                    <h3>Recent security events</h3>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Event ID</th>
+                            <th>Provider</th>
+                            <th>Level</th>
+                            <th>Message</th>
+                            <th>Occurred</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="events-table-body">
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                Loading events...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="devices" class="panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">Agent inventory</p>
+                    <h3>Monitored devices</h3>
+                </div>
+            </div>
+
+            <div id="device-list" class="device-grid">
+                <p class="empty-state">Loading devices...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

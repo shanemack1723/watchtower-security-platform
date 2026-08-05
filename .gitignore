@@ -1,0 +1,19 @@
+# Python environment
+.venv/
+__pycache__/
+*.pyc
+
+# Local secrets
+.env
+
+# Agent-specific configuration and state
+agent/agent-config.json
+agent/agent-state.json
+
+# Local database
+watchtower.db
+
+# Editor and operating-system files
+.vscode/
+.DS_Store
+Thumbs.db
