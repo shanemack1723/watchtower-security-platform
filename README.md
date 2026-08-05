@@ -32,6 +32,11 @@ A PowerShell endpoint agent collects selected Windows Security events and sends 
 - Administrator-only user management and audit-log access
 - Audit history for logins, logouts, account creation, and alert-status changes
 - Logged-in analyst identity and secure sign-out controls
+- Alert ownership and analyst assignment
+- Persistent investigation notes
+- Chronological alert-investigation timeline
+- Audited assignment and note activity
+- Interactive alert-investigation dashboard
 
 ## Architecture
 

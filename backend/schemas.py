@@ -124,3 +124,34 @@ class AuditLogResponse(BaseModel):
     details: dict | None
     source_ip: str | None
     created_at: datetime
+
+class AlertAssignmentCreate(BaseModel):
+    assigned_user_id: int = Field(gt=0)
+
+
+class AlertAssignmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    alert_id: int
+    assigned_user_id: int
+    assigned_by_user_id: int
+    assigned_at: datetime
+    updated_at: datetime
+
+
+class AlertNoteCreate(BaseModel):
+    body: str = Field(
+        min_length=1,
+        max_length=4000,
+    )
+
+
+class AlertNoteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    alert_id: int
+    author_user_id: int
+    body: str
+    created_at: datetime

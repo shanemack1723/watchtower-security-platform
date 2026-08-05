@@ -283,3 +283,65 @@ def test_admin_can_view_audit_log(
     actions = [entry["action"] for entry in audit_logs]
 
     assert "authentication.succeeded" in actions
+
+def test_alert_investigation_workflow(
+    client: TestClient,
+):
+    register_test_device(client)
+
+    event_response = create_failed_login_event(
+        client=client,
+        record_id=70001,
+        occurred_at="2026-08-05T03:00:00Z",
+    )
+
+    assert event_response.status_code == 201
+
+    alerts_response = client.get("/alerts/")
+    assert alerts_response.status_code == 200
+
+    alert_id = alerts_response.json()[0]["id"]
+
+    profile_response = client.get("/auth/me")
+    assert profile_response.status_code == 200
+
+    user_id = profile_response.json()["id"]
+
+    assignment_response = client.put(
+        f"/alerts/{alert_id}/assignment",
+        json={
+            "assigned_user_id": user_id,
+        },
+    )
+
+    assert assignment_response.status_code == 200
+    assert assignment_response.json()["alert_id"] == alert_id
+    assert assignment_response.json()["assigned_user_id"] == user_id
+
+    note_response = client.post(
+        f"/alerts/{alert_id}/notes",
+        json={
+            "body": "Reviewed the alert and documented the investigation.",
+        },
+    )
+
+    assert note_response.status_code == 201
+    assert note_response.json()["author_user_id"] == user_id
+
+    notes_response = client.get(
+        f"/alerts/{alert_id}/notes"
+    )
+
+    assert notes_response.status_code == 200
+    assert len(notes_response.json()) == 1
+
+    audit_response = client.get("/audit/")
+    assert audit_response.status_code == 200
+
+    actions = [
+        entry["action"]
+        for entry in audit_response.json()
+    ]
+
+    assert "alert.assigned" in actions
+    assert "alert.note_added" in actions

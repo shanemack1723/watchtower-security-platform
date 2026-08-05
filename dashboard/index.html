@@ -111,6 +111,7 @@
                             <th>Rule</th>
                             <th>Status</th>
                             <th>Created</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
 
@@ -200,6 +201,85 @@
     </div>
 </section>
     </main>
+
+    <div id="investigation-modal" class="modal-backdrop" hidden>
+    <section
+        class="investigation-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="investigation-title"
+    >
+        <div class="investigation-header">
+            <div>
+                <p class="eyebrow">Alert investigation</p>
+                <h2 id="investigation-title">Alert details</h2>
+                <p id="investigation-alert-summary">
+                    Loading alert...
+                </p>
+            </div>
+
+            <button
+                id="close-investigation"
+                class="modal-close"
+                type="button"
+                aria-label="Close investigation"
+            >
+                ×
+            </button>
+        </div>
+
+        <div class="investigation-grid">
+            <div class="investigation-section">
+                <h3>Assignment</h3>
+
+                <label for="assignment-user">
+                    Assigned analyst
+                </label>
+
+                <select id="assignment-user">
+                    <option value="">Loading analysts...</option>
+                </select>
+
+                <button
+                    id="save-assignment"
+                    class="primary-action"
+                    type="button"
+                >
+                    Save assignment
+                </button>
+            </div>
+
+            <div class="investigation-section">
+                <h3>Add investigation note</h3>
+
+                <form id="note-form">
+                    <label for="note-body">
+                        Analyst note
+                    </label>
+
+                    <textarea
+                        id="note-body"
+                        maxlength="4000"
+                        required
+                        placeholder="Document the evidence reviewed, actions taken, and next steps..."
+                    ></textarea>
+
+                    <button class="primary-action" type="submit">
+                        Add note
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="investigation-section">
+            <h3>Investigation timeline</h3>
+
+            <div id="investigation-notes" class="investigation-notes">
+                <p class="empty-state">Loading notes...</p>
+            </div>
+        </div>
+    </section>
+</div>
 
     <script src="/static/app.js"></script>
 </body>

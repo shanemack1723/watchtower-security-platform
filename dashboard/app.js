@@ -72,7 +72,7 @@ function renderAlerts(alerts) {
     if (alerts.length === 0) {
         alertsTableBody.innerHTML = `
             <tr>
-                <td colspan="5" class="empty-state">
+                <td colspan="6" class="empty-state">
                     No alerts have been generated.
                 </td>
             </tr>
@@ -130,7 +130,16 @@ function renderAlerts(alerts) {
 </td>
 
             <td>${escapeHtml(formatDate(alert.created_at))}</td>
-        </tr>
+            <td>
+    <button
+        class="investigate-button"
+        type="button"
+        data-alert-id="${alert.id}"
+    >
+        Investigate
+    </button>
+</td>
+</tr>
     `).join("");
 }
 
@@ -327,6 +336,231 @@ loadDashboard();
 
 setInterval(loadDashboard, 30000);
 
+let activeInvestigationAlertId = null;
+let activeAnalysts = [];
+
+
+async function loadAnalysts() {
+    activeAnalysts = await fetchJson("/auth/analysts");
+
+    const assignmentSelect =
+        document.getElementById("assignment-user");
+
+    assignmentSelect.replaceChildren();
+
+    const unassignedOption = document.createElement("option");
+    unassignedOption.value = "";
+    unassignedOption.textContent = "Select an analyst";
+    assignmentSelect.appendChild(unassignedOption);
+
+    activeAnalysts.forEach((analyst) => {
+        const option = document.createElement("option");
+
+        option.value = analyst.id;
+        option.textContent =
+            `${analyst.username} (${analyst.role})`;
+
+        assignmentSelect.appendChild(option);
+    });
+}
+
+
+async function loadAlertAssignment(alertId) {
+    const response = await fetch(
+        `/alerts/${alertId}/assignment`
+    );
+
+    if (response.status === 401) {
+        window.location.replace("/login");
+        return;
+    }
+
+    const assignmentSelect =
+        document.getElementById("assignment-user");
+
+    if (response.status === 404) {
+        assignmentSelect.value = "";
+        return;
+    }
+
+    if (!response.ok) {
+        throw new Error("Unable to load alert assignment.");
+    }
+
+    const assignment = await response.json();
+
+    assignmentSelect.value =
+        String(assignment.assigned_user_id);
+}
+
+async function loadInvestigationNotes(alertId) {
+    const notes = await fetchJson(
+        `/alerts/${alertId}/notes`
+    );
+
+    const notesContainer =
+        document.getElementById("investigation-notes");
+
+    notesContainer.replaceChildren();
+
+    if (notes.length === 0) {
+        const emptyMessage = document.createElement("p");
+        emptyMessage.className = "empty-state";
+        emptyMessage.textContent =
+            "No investigation notes have been added.";
+
+        notesContainer.appendChild(emptyMessage);
+        return;
+    }
+
+    notes.forEach((note) => {
+        const author = activeAnalysts.find(
+            (analyst) => analyst.id === note.author_user_id
+        );
+
+        const noteElement = document.createElement("article");
+        noteElement.className = "investigation-note";
+
+        const metadata = document.createElement("p");
+        metadata.className = "investigation-note-meta";
+        metadata.textContent =
+            `${author ? author.username : `User #${note.author_user_id}`} · ` +
+            formatDate(note.created_at);
+
+        const body = document.createElement("p");
+        body.className = "investigation-note-body";
+        body.textContent = note.body;
+
+        noteElement.append(metadata, body);
+        notesContainer.appendChild(noteElement);
+    });
+}
+
+
+async function submitInvestigationNote(event) {
+    event.preventDefault();
+
+    if (!activeInvestigationAlertId) {
+        return;
+    }
+
+    const noteInput = document.getElementById("note-body");
+    const noteBody = noteInput.value.trim();
+
+    if (!noteBody) {
+        alert("Enter an investigation note.");
+        return;
+    }
+
+    const response = await fetch(
+        `/alerts/${activeInvestigationAlertId}/notes`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                body: noteBody,
+            }),
+        }
+    );
+
+    if (response.status === 401) {
+        window.location.replace("/login");
+        return;
+    }
+
+    if (!response.ok) {
+        throw new Error("Unable to add investigation note.");
+    }
+
+    noteInput.value = "";
+
+    await loadInvestigationNotes(
+        activeInvestigationAlertId
+    );
+}
+
+
+async function saveAlertAssignment() {
+    const assignmentSelect =
+        document.getElementById("assignment-user");
+
+    const assignedUserId = Number(assignmentSelect.value);
+
+    if (!assignedUserId || !activeInvestigationAlertId) {
+        alert("Select an analyst first.");
+        return;
+    }
+
+    const response = await fetch(
+        `/alerts/${activeInvestigationAlertId}/assignment`,
+        {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                assigned_user_id: assignedUserId,
+            }),
+        }
+    );
+
+    if (response.status === 401) {
+        window.location.replace("/login");
+        return;
+    }
+
+    if (!response.ok) {
+        throw new Error("Unable to save alert assignment.");
+    }
+
+    alert("Alert assignment saved.");
+}
+async function openInvestigation(alertId) {
+    activeInvestigationAlertId = alertId;
+
+    const modal = document.getElementById(
+        "investigation-modal"
+    );
+
+    document.getElementById(
+        "investigation-title"
+    ).textContent = `Investigate Alert #${alertId}`;
+
+    document.getElementById(
+        "investigation-alert-summary"
+    ).textContent =
+        "Assign ownership and document the investigation timeline.";
+
+    document.getElementById("note-body").value = "";
+
+    modal.removeAttribute("hidden");
+
+    try {
+        await loadAnalysts();
+
+        await Promise.all([
+            loadAlertAssignment(alertId),
+            loadInvestigationNotes(alertId),
+        ]);
+    } catch (error) {
+        console.error(error);
+        alert(error.message);
+        closeInvestigation();
+    }
+}
+
+
+function closeInvestigation() {
+    document
+        .getElementById("investigation-modal")
+        .setAttribute("hidden", "");
+
+    activeInvestigationAlertId = null;
+}
+
+
 async function loadAuditLogs() {
     const auditLogs = await fetchJson("/audit/?limit=100");
     const tableBody = document.getElementById("audit-table-body");
@@ -430,4 +664,62 @@ document
 loadCurrentUser().catch((error) => {
     console.error(error);
     window.location.replace("/login");
+});
+
+alertsTableBody.addEventListener("click", (event) => {
+    const button = event.target.closest(
+        ".investigate-button"
+    );
+
+    if (!button) {
+        return;
+    }
+
+    openInvestigation(
+        Number(button.dataset.alertId)
+    );
+});
+
+
+document
+    .getElementById("close-investigation")
+    .addEventListener("click", closeInvestigation);
+
+
+document
+    .getElementById("save-assignment")
+    .addEventListener("click", () => {
+        saveAlertAssignment().catch((error) => {
+            console.error(error);
+            alert(error.message);
+        });
+    });
+
+
+document
+    .getElementById("note-form")
+    .addEventListener("submit", (event) => {
+        submitInvestigationNote(event).catch((error) => {
+            console.error(error);
+            alert(error.message);
+        });
+    });
+
+
+document
+    .getElementById("investigation-modal")
+    .addEventListener("click", (event) => {
+        if (event.target === event.currentTarget) {
+            closeInvestigation();
+        }
+    });
+
+
+document.addEventListener("keydown", (event) => {
+    if (
+        event.key === "Escape" &&
+        activeInvestigationAlertId
+    ) {
+        closeInvestigation();
+    }
 });

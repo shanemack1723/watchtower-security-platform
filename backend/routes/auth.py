@@ -218,3 +218,19 @@ def list_users(
     ).all()
 
     return list(users)
+
+@router.get(
+    "/analysts",
+    response_model=list[UserResponse],
+)
+def list_active_analysts(
+    current_user: CurrentUser,
+    database: DatabaseSession,
+):
+    users = database.scalars(
+        select(User)
+        .where(User.is_active.is_(True))
+        .order_by(User.username)
+    ).all()
+
+    return list(users)

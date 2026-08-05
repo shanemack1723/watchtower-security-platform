@@ -194,3 +194,57 @@ class AuditLog(Base):
         index=True,
     )
 
+class AlertAssignment(Base):
+    __tablename__ = "alert_assignments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    alert_id: Mapped[int] = mapped_column(
+        ForeignKey("alerts.id"),
+        unique=True,
+        index=True,
+    )
+
+    assigned_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        index=True,
+    )
+
+    assigned_by_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+    )
+
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class AlertNote(Base):
+    __tablename__ = "alert_notes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    alert_id: Mapped[int] = mapped_column(
+        ForeignKey("alerts.id"),
+        index=True,
+    )
+
+    author_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        index=True,
+    )
+
+    body: Mapped[str] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+

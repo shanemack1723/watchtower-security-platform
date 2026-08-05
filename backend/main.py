@@ -15,6 +15,7 @@ from backend.routes.events import router as events_router
 from backend.routes.alerts import router as alerts_router
 from backend.routes.auth import router as auth_router
 from backend.routes.audit import router as audit_router
+from backend.routes.investigations import router as investigations_router
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DASHBOARD_DIRECTORY = PROJECT_ROOT / "dashboard"
@@ -44,6 +45,7 @@ app.include_router(events_router)
 app.include_router(alerts_router)
 app.include_router(auth_router)
 app.include_router(audit_router)
+app.include_router(investigations_router)
 
 @app.get(
     "/login",
