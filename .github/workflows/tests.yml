@@ -8,14 +8,13 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  sqlite-tests:
     runs-on: windows-latest
 
     env:
       WATCHTOWER_AGENT_API_KEY: github-actions-test-key
       WATCHTOWER_JWT_SECRET: github-actions-jwt-test-secret-at-least-32-characters
-      WATCHTOWER_DATABASE_URL: sqlite:///./github-actions.db
-
+      WATCHTOWER_DATABASE_URL: sqlite:///./watchtower-ci.db
 
     steps:
       - name: Check out repository
@@ -25,13 +24,58 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-          cache: "pip"
+          cache: pip
 
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Apply database migrations
+      - name: Apply SQLite migrations
         run: python -m alembic upgrade head
+
+      - name: Run automated tests
+        run: python -m pytest -v
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: watchtower_test
+          POSTGRES_USER: watchtower
+          POSTGRES_PASSWORD: watchtower-test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U watchtower -d watchtower_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      WATCHTOWER_AGENT_API_KEY: github-actions-test-key
+      WATCHTOWER_JWT_SECRET: github-actions-jwt-test-secret-at-least-32-characters
+      WATCHTOWER_DATABASE_URL: postgresql+psycopg://watchtower:watchtower-test-password@127.0.0.1:5432/watchtower_test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Apply PostgreSQL migrations
+        run: python -m alembic upgrade head
+
+      - name: Verify current migration
+        run: python -m alembic current
 
       - name: Run automated tests
         run: python -m pytest -v
