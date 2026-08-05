@@ -19,20 +19,31 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute(
-        """
-        ALTER TABLE security_events
-        ALTER COLUMN record_id TYPE BIGINT
-        USING record_id::BIGINT
-        """
+    bind = op.get_bind()
+
+    # SQLite INTEGER already supports 64-bit values.
+    if bind.dialect.name == "sqlite":
+        return
+
+    op.alter_column(
+        "security_events",
+        "record_id",
+        existing_type=sa.Integer(),
+        type_=sa.BigInteger(),
+        existing_nullable=True,
     )
 
 
 def downgrade() -> None:
-    op.execute(
-        """
-        ALTER TABLE security_events
-        ALTER COLUMN record_id TYPE INTEGER
-        USING record_id::INTEGER
-        """
+    bind = op.get_bind()
+
+    if bind.dialect.name == "sqlite":
+        return
+
+    op.alter_column(
+        "security_events",
+        "record_id",
+        existing_type=sa.BigInteger(),
+        type_=sa.Integer(),
+        existing_nullable=True,
     )
