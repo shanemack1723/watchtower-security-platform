@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
+
 from backend.database import Base
-from sqlalchemy import Boolean, JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 
 
 class Device(Base):
@@ -51,7 +51,7 @@ class SecurityEvent(Base):
     )
 
     record_id: Mapped[int | None] = mapped_column(
-        Integer,
+        BigInteger,
         nullable=True,
     )
 

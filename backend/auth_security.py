@@ -5,6 +5,7 @@ from typing import Annotated
 import jwt
 from fastapi import Depends, HTTPException, Request, status
 from jwt.exceptions import InvalidTokenError
+from pwdlib.hashers.bcrypt import BcryptHasher
 from pwdlib import PasswordHash
 from sqlalchemy.orm import Session
 
@@ -16,7 +17,7 @@ SESSION_COOKIE_NAME = "watchtower_session"
 JWT_ALGORITHM = "HS256"
 SESSION_LENGTH_MINUTES = 60
 
-password_hasher = PasswordHash.recommended()
+password_hasher = PasswordHash((BcryptHasher(),))
 
 DatabaseSession = Annotated[Session, Depends(get_database)]
 
