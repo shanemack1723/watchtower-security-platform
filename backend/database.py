@@ -1,15 +1,13 @@
-import os
 from collections.abc import Generator
 
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-load_dotenv()
-DATABASE_URL = os.getenv(
-    "WATCHTOWER_DATABASE_URL",
-    "sqlite:///./watchtower.db",
-)
+from backend.config import load_settings
+
+
+settings = load_settings()
+DATABASE_URL = settings.database_url
 
 connect_args = (
     {"check_same_thread": False}
@@ -20,6 +18,12 @@ connect_args = (
 engine = create_engine(
     DATABASE_URL,
     connect_args=connect_args,
+)
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
 )
 
 SessionLocal = sessionmaker(
