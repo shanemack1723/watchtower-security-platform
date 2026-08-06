@@ -2,16 +2,6 @@ const loginForm = document.querySelector("#login-form");
 const loginButton = document.querySelector("#login-button");
 const loginError = document.querySelector("#login-error");
 
-
-async function redirectAuthenticatedUser() {
-    const response = await fetch("/auth/me");
-
-    if (response.ok) {
-        window.location.replace("/dashboard");
-    }
-}
-
-
 loginForm.addEventListener("submit", async (browserEvent) => {
     browserEvent.preventDefault();
 
@@ -52,5 +42,7 @@ loginForm.addEventListener("submit", async (browserEvent) => {
     }
 });
 
+if (window.performance.getEntriesByType("navigation")[0]?.type !== "reload") {
+    redirectAuthenticatedUser();
+}
 
-redirectAuthenticatedUser();

@@ -55,8 +55,26 @@ function shortenMessage(message, maximumLength = 100) {
 }
 
 
+let redirectingToLogin = false;
+
+let redirectingToLogin = false;
+
 async function fetchJson(url) {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+        credentials: "same-origin",
+    });
+
+    if (response.status === 401) {
+        if (
+            window.location.pathname !== "/login" &&
+            !redirectingToLogin
+        ) {
+            redirectingToLogin = true;
+            window.location.replace("/login");
+        }
+
+        throw new Error("Authentication required.");
+    }
 
     if (!response.ok) {
         throw new Error(
@@ -66,7 +84,6 @@ async function fetchJson(url) {
 
     return response.json();
 }
-
 
 function renderAlerts(alerts) {
     if (alerts.length === 0) {

@@ -25,6 +25,13 @@ class DeviceResponse(BaseModel):
     first_seen: datetime
     last_seen: datetime
 
+
+
+class DeviceHeartbeat(BaseModel):
+    agent_version: str | None = Field(default=None, max_length=20)
+
+
+
 class SecurityEventCreate(BaseModel):
     device_id: str = Field(min_length=3, max_length=100)
     windows_event_id: int = Field(ge=0)
@@ -155,3 +162,13 @@ class AlertNoteResponse(BaseModel):
     author_user_id: int
     body: str
     created_at: datetime
+
+
+
+    
+class DeviceRegistration(BaseModel):
+    device_id: str
+    hostname: str
+    operating_system: str
+    ip_address: str
+    agent_version: str = "0.1.0"

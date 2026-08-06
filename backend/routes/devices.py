@@ -1,14 +1,18 @@
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.auth_security import get_current_user
 from backend.database import get_database
 from backend.models import Device
-from backend.schemas import DeviceRegistration, DeviceResponse
+from backend.schemas import (
+    DeviceHeartbeat,
+    DeviceRegistration,
+    DeviceResponse,
+)
 from backend.security import require_agent_api_key
 
 
@@ -69,4 +73,34 @@ def list_devices(database: DatabaseSession):
     ).all()
 
     return list(devices)
+
+@router.post(
+    "/{device_id}/heartbeat",
+    response_model=DeviceResponse,
+)
+def record_device_heartbeat(
+    device_id: str,
+    heartbeat: DeviceHeartbeat,
+    database: DatabaseSession,
+):
+    device = database.scalar(
+        select(Device).where(Device.device_id == device_id)
+    )
+
+    if device is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found.",
+        )
+
+    device.last_seen = datetime.now(timezone.utc)
+    device.status = "online"
+
+    if heartbeat.agent_version is not None:
+        device.agent_version = heartbeat.agent_version
+
+    database.commit()
+    database.refresh(device)
+
+    return device
 
