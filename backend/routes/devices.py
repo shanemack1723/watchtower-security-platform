@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from backend.auth_security import get_current_user
@@ -28,6 +28,7 @@ DEVICE_OFFLINE_AFTER = timedelta(minutes=5)
 CPU_ALERT_THRESHOLD = 90.0
 MEMORY_ALERT_THRESHOLD = 90.0
 DISK_FREE_ALERT_THRESHOLD = 10.0
+TELEMETRY_RETENTION_DAYS = 30
 DatabaseSession = Annotated[Session, Depends(get_database)]
 
 def update_device_health_alert(
@@ -347,6 +348,16 @@ def record_device_telemetry(
         },
     )
     database.commit()
+    retention_cutoff = (
+        datetime.now(timezone.utc) -
+        timedelta(days=TELEMETRY_RETENTION_DAYS)
+    )
+
+    database.execute(
+        delete(DeviceTelemetry).where(
+            DeviceTelemetry.collected_at < retention_cutoff
+        )
+    )
     database.refresh(telemetry_record)
 
     return telemetry_record
