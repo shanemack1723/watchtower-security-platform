@@ -358,6 +358,24 @@ tbody tr:hover {
     font-size: 12px;
 }
 
+.device-telemetry {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.device-telemetry p {
+    margin: 0;
+    padding: 9px;
+    border-radius: 7px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 12px;
+}
+
 .device-status {
     color: var(--green);
     font-size: 11px;

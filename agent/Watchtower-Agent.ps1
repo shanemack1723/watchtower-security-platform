@@ -96,6 +96,84 @@ catch {
 }
 
 Write-Host ""
+Write-Host "Collecting device telemetry..." -ForegroundColor Cyan
+
+try {
+    $osInfo = Get-CimInstance Win32_OperatingSystem
+    $processorInfo = Get-CimInstance Win32_Processor
+
+    $systemDrive = Get-CimInstance Win32_LogicalDisk `
+        -Filter "DeviceID='$($env:SystemDrive)'"
+
+    $cpuPercent = (
+        $processorInfo |
+        Measure-Object -Property LoadPercentage -Average
+    ).Average
+
+    $memoryUsed = (
+        $osInfo.TotalVisibleMemorySize -
+        $osInfo.FreePhysicalMemory
+    )
+
+    $memoryPercent = (
+        $memoryUsed /
+        $osInfo.TotalVisibleMemorySize
+    ) * 100
+
+    $diskTotalGb = $systemDrive.Size / 1GB
+    $diskFreeGb = $systemDrive.FreeSpace / 1GB
+
+    $uptimeSeconds = (
+        New-TimeSpan `
+            -Start $osInfo.LastBootUpTime `
+            -End (Get-Date)
+    ).TotalSeconds
+
+    $telemetryData = @{
+        cpu_percent = [math]::Round(
+            [double]$cpuPercent,
+            2
+        )
+        memory_percent = [math]::Round(
+            [double]$memoryPercent,
+            2
+        )
+        disk_total_gb = [math]::Round(
+            [double]$diskTotalGb,
+            2
+        )
+        disk_free_gb = [math]::Round(
+            [double]$diskFreeGb,
+            2
+        )
+        uptime_seconds = [long]$uptimeSeconds
+    }
+
+    $telemetryJson = $telemetryData | ConvertTo-Json
+
+    $telemetryUrl = (
+        "$($config.api_base_url)/devices/" +
+        "$($config.device_id)/telemetry"
+    )
+
+    $telemetryResponse = Invoke-RestMethod `
+        -Uri $telemetryUrl `
+        -Method Post `
+        -Headers $apiHeaders `
+        -ContentType "application/json" `
+        -Body $telemetryJson
+
+    Write-Host "Device telemetry sent successfully." -ForegroundColor Green
+    Write-Host "CPU: $($telemetryResponse.cpu_percent)%"
+    Write-Host "Memory: $($telemetryResponse.memory_percent)%"
+    Write-Host "Disk free: $($telemetryResponse.disk_free_gb) GB"
+}
+catch {
+    Write-Host "Unable to send device telemetry." -ForegroundColor Red
+    Write-Host $_.Exception.Message
+}
+
+Write-Host ""
 Write-Host "Collecting Windows Security events..." -ForegroundColor Cyan
 
 $startTime = (Get-Date).AddMinutes(

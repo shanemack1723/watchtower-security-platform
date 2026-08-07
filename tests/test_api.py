@@ -182,6 +182,36 @@ def test_device_heartbeat_requires_api_key(client: TestClient):
 
     assert response.status_code == 401
 
+def test_device_telemetry_workflow(client: TestClient):
+    registration_response = register_test_device(client)
+
+    assert registration_response.status_code == 201
+
+    telemetry_response = client.post(
+        f"/devices/{DEVICE_DATA['device_id']}/telemetry",
+        headers=AGENT_HEADERS,
+        json={
+            "cpu_percent": 27.5,
+            "memory_percent": 61.2,
+            "disk_total_gb": 475.0,
+            "disk_free_gb": 203.4,
+            "uptime_seconds": 86400,
+        },
+    )
+
+    assert telemetry_response.status_code == 201
+    assert telemetry_response.json()["cpu_percent"] == 27.5
+    assert telemetry_response.json()["memory_percent"] == 61.2
+    assert telemetry_response.json()["disk_free_gb"] == 203.4
+    assert telemetry_response.json()["uptime_seconds"] == 86400
+
+    latest_response = client.get(
+        f"/devices/{DEVICE_DATA['device_id']}/telemetry/latest"
+    )
+
+    assert latest_response.status_code == 200
+    assert latest_response.json()["id"] == telemetry_response.json()["id"]
+
 def test_stale_device_is_marked_offline(
     client: TestClient,
     monkeypatch,

@@ -172,3 +172,23 @@ class DeviceRegistration(BaseModel):
     operating_system: str
     ip_address: str
     agent_version: str = "0.1.0"
+
+class DeviceTelemetryCreate(BaseModel):
+    cpu_percent: float = Field(ge=0, le=100)
+    memory_percent: float = Field(ge=0, le=100)
+    disk_total_gb: float = Field(gt=0)
+    disk_free_gb: float = Field(ge=0)
+    uptime_seconds: int = Field(ge=0)
+
+
+class DeviceTelemetryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    device_id: int
+    cpu_percent: float
+    memory_percent: float
+    disk_total_gb: float
+    disk_free_gb: float
+    uptime_seconds: int
+    collected_at: datetime

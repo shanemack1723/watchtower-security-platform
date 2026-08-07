@@ -7,11 +7,13 @@ from sqlalchemy.orm import Session
 
 from backend.auth_security import get_current_user
 from backend.database import get_database
-from backend.models import Alert, Device, SecurityEvent
+from backend.models import Alert, Device, DeviceTelemetry, SecurityEvent
 from backend.schemas import (
     DeviceHeartbeat,
     DeviceRegistration,
     DeviceResponse,
+    DeviceTelemetryCreate,
+    DeviceTelemetryResponse,
 )
 from backend.security import require_agent_api_key
 
@@ -175,4 +177,71 @@ def record_device_heartbeat(
     database.refresh(device)
 
     return device
+
+@router.post(
+    "/{device_id}/telemetry",
+    response_model=DeviceTelemetryResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_agent_api_key)],
+)
+def record_device_telemetry(
+    device_id: str,
+    telemetry: DeviceTelemetryCreate,
+    database: DatabaseSession,
+):
+    device = database.scalar(
+        select(Device).where(Device.device_id == device_id)
+    )
+
+    if device is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found.",
+        )
+
+    if telemetry.disk_free_gb > telemetry.disk_total_gb:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Free disk space cannot exceed total disk space.",
+        )
+
+    telemetry_record = DeviceTelemetry(
+        device_id=device.id,
+        **telemetry.model_dump(),
+    )
+
+    database.add(telemetry_record)
+    database.commit()
+    database.refresh(telemetry_record)
+
+    return telemetry_record
+
+@router.get(
+    "/{device_id}/telemetry/latest",
+    response_model=DeviceTelemetryResponse | None,
+    dependencies=[Depends(get_current_user)],
+)
+def get_latest_device_telemetry(
+    device_id: str,
+    database: DatabaseSession,
+):
+    device = database.scalar(
+        select(Device).where(Device.device_id == device_id)
+    )
+
+    if device is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found.",
+        )
+
+    return database.scalar(
+        select(DeviceTelemetry)
+        .where(DeviceTelemetry.device_id == device.id)
+        .order_by(
+            DeviceTelemetry.collected_at.desc(),
+            DeviceTelemetry.id.desc(),
+        )
+        .limit(1)
+    )
 

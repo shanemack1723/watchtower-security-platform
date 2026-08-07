@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import BigInteger, Boolean, JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Float, JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.database import Base
@@ -33,6 +33,29 @@ class Device(Base):
     last_seen: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
+    )
+
+class DeviceTelemetry(Base):
+    __tablename__ = "device_telemetry"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    device_id: Mapped[int] = mapped_column(
+        ForeignKey("devices.id"),
+        index=True,
+    )
+
+    cpu_percent: Mapped[float] = mapped_column(Float)
+    memory_percent: Mapped[float] = mapped_column(Float)
+    disk_total_gb: Mapped[float] = mapped_column(Float)
+    disk_free_gb: Mapped[float] = mapped_column(Float)
+
+    uptime_seconds: Mapped[int] = mapped_column(BigInteger)
+
+    collected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
     )
 
 class SecurityEvent(Base):

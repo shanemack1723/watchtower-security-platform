@@ -218,6 +218,47 @@ function renderDevices(devices) {
             <p>IP address: ${escapeHtml(device.ip_address)}</p>
             <p>Agent version: ${escapeHtml(device.agent_version)}</p>
             <p>Last seen: ${escapeHtml(formatDate(device.last_seen))}</p>
+            ${device.telemetry ? `
+                <div class="device-telemetry">
+                    <p>
+                        CPU:
+                        ${Number(
+                            device.telemetry.cpu_percent
+                        ).toFixed(1)}%
+                    </p>
+                    <p>
+                        Memory:
+                        ${Number(
+                            device.telemetry.memory_percent
+                        ).toFixed(1)}%
+                    </p>
+                    <p>
+                        Disk:
+                        ${Number(
+                            device.telemetry.disk_free_gb
+                        ).toFixed(1)}
+                        GB free of
+                        ${Number(
+                            device.telemetry.disk_total_gb
+                        ).toFixed(1)}
+                        GB
+                    </p>
+                    <p>
+                        Uptime:
+                        ${Math.floor(
+                            device.telemetry.uptime_seconds / 86400
+                        )}d
+                        ${Math.floor(
+                            (
+                                device.telemetry.uptime_seconds %
+                                86400
+                            ) / 3600
+                        )}h
+                    </p>
+                </div>
+            ` : `
+                <p>Telemetry: Waiting for agent data</p>
+            `}
         </article>
     `).join("");
 }
@@ -272,6 +313,16 @@ async function loadDashboard() {
             fetchJson("/events/?limit=100"),
             fetchJson("/devices/"),
         ]);
+
+        await Promise.all(
+            devices.map(async (device) => {
+                device.telemetry = await fetchJson(
+                    `/devices/${encodeURIComponent(
+                        device.device_id
+                    )}/telemetry/latest`
+                );
+            })
+        );
 
         renderAlerts(alerts);
         renderEvents(events);
