@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from datetime import timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -148,6 +149,57 @@ def test_authorized_device_registration(client: TestClient):
     assert response.status_code == 201
     assert response.json()["device_id"] == "TEST-PC-001"
     assert response.json()["status"] == "online"
+
+def test_device_heartbeat(client: TestClient):
+    registration_response = register_test_device(client)
+
+    assert registration_response.status_code == 201
+
+    response = client.post(
+        f"/devices/{DEVICE_DATA['device_id']}/heartbeat",
+        headers=AGENT_HEADERS,
+        json={
+            "agent_version": "0.2.0",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["device_id"] == DEVICE_DATA["device_id"]
+    assert response.json()["status"] == "online"
+    assert response.json()["agent_version"] == "0.2.0"
+
+def test_device_heartbeat_requires_api_key(client: TestClient):
+    registration_response = register_test_device(client)
+
+    assert registration_response.status_code == 201
+
+    response = client.post(
+        f"/devices/{DEVICE_DATA['device_id']}/heartbeat",
+        json={
+            "agent_version": "0.2.0",
+        },
+    )
+
+    assert response.status_code == 401
+
+def test_stale_device_is_marked_offline(
+    client: TestClient,
+    monkeypatch,
+):
+    registration_response = register_test_device(client)
+
+    assert registration_response.status_code == 201
+
+    monkeypatch.setattr(
+        "backend.routes.devices.DEVICE_OFFLINE_AFTER",
+        timedelta(seconds=0),
+    )
+
+    response = client.get("/devices/")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert response.json()[0]["status"] == "offline"
 
 
 def test_duplicate_event_is_not_stored_twice(client: TestClient):

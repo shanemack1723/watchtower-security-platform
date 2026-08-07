@@ -190,3 +190,30 @@ if ($highestSuccessfulRecordId -gt $lastRecordId) {
 
     Write-Host "Agent state updated to Record ID $highestSuccessfulRecordId."
 }
+
+Write-Host ""
+Write-Host "Sending device heartbeat..." -ForegroundColor Cyan
+
+$heartbeatUrl = "$($config.api_base_url)/devices/$($config.device_id)/heartbeat"
+
+$heartbeatData = @{
+    agent_version = $config.agent_version
+}
+
+$heartbeatJson = $heartbeatData | ConvertTo-Json
+
+try {
+    $heartbeatResponse = Invoke-RestMethod `
+        -Uri $heartbeatUrl `
+        -Method Post `
+        -Headers $apiHeaders `
+        -ContentType "application/json" `
+        -Body $heartbeatJson
+
+    Write-Host "Heartbeat sent successfully." -ForegroundColor Green
+    Write-Host "Device status: $($heartbeatResponse.status)"
+}
+catch {
+    Write-Host "Heartbeat failed." -ForegroundColor Red
+    Write-Host $_.Exception.Message
+}

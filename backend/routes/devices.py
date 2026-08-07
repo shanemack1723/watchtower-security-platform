@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -22,6 +22,7 @@ router = APIRouter(
 )
 
 
+DEVICE_OFFLINE_AFTER = timedelta(minutes=5)
 DatabaseSession = Annotated[Session, Depends(get_database)]
 
 
@@ -68,15 +69,37 @@ def register_device(
     dependencies=[Depends(get_current_user)],
 )
 def list_devices(database: DatabaseSession):
-    devices = database.scalars(
-        select(Device).order_by(Device.hostname)
-    ).all()
+    devices = list(
+        database.scalars(
+            select(Device).order_by(Device.hostname)
+        ).all()
+    )
 
-    return list(devices)
+    current_time = datetime.now(timezone.utc)
+    status_changed = False
+
+    for device in devices:
+        last_seen = device.last_seen
+
+        if last_seen.tzinfo is None:
+            last_seen = last_seen.replace(tzinfo=timezone.utc)
+
+        if (
+            current_time - last_seen >= DEVICE_OFFLINE_AFTER
+            and device.status != "offline"
+        ):
+            device.status = "offline"
+            status_changed = True
+
+    if status_changed:
+        database.commit()
+
+    return devices
 
 @router.post(
     "/{device_id}/heartbeat",
     response_model=DeviceResponse,
+    dependencies=[Depends(require_agent_api_key)],
 )
 def record_device_heartbeat(
     device_id: str,
