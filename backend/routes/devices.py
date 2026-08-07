@@ -155,6 +155,21 @@ def record_device_heartbeat(
 
     if heartbeat.agent_version is not None:
         device.agent_version = heartbeat.agent_version
+    offline_alerts = database.scalars(
+        select(Alert)
+        .join(
+            SecurityEvent,
+            Alert.security_event_id == SecurityEvent.id,
+        )
+        .where(
+            SecurityEvent.device_id == device.id,
+            Alert.rule_id == "device-offline",
+            Alert.status.in_(["open", "investigating"]),
+        )
+    ).all()
+
+    for offline_alert in offline_alerts:
+        offline_alert.status = "resolved"
 
     database.commit()
     database.refresh(device)

@@ -230,6 +230,30 @@ def test_stale_device_is_marked_offline(
 
     assert len(second_offline_alerts) == 1
 
+    heartbeat_response = client.post(
+        f"/devices/{DEVICE_DATA['device_id']}/heartbeat",
+        headers=AGENT_HEADERS,
+        json={
+            "agent_version": "0.2.0",
+        },
+    )
+
+    assert heartbeat_response.status_code == 200
+    assert heartbeat_response.json()["status"] == "online"
+
+    recovered_alerts_response = client.get("/alerts/")
+
+    assert recovered_alerts_response.status_code == 200
+
+    recovered_offline_alerts = [
+        alert
+        for alert in recovered_alerts_response.json()
+        if alert["rule_id"] == "device-offline"
+    ]
+
+    assert len(recovered_offline_alerts) == 1
+    assert recovered_offline_alerts[0]["status"] == "resolved"
+
 
 def test_duplicate_event_is_not_stored_twice(client: TestClient):
     register_test_device(client)
