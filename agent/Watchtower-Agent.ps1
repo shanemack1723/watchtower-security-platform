@@ -1,4 +1,66 @@
 $ErrorActionPreference = "Stop"
+$PSDefaultParameterValues[
+    "Invoke-RestMethod:TimeoutSec"
+] = 30
+$agentMutex = New-Object System.Threading.Mutex(
+    $false,
+    "Global\WatchtowerSecurityAgent"
+)
+
+try {
+    $hasAgentLock = $agentMutex.WaitOne(
+        0,
+        $false
+    )
+}
+catch [System.Threading.AbandonedMutexException] {
+    $hasAgentLock = $true
+}
+
+if (-not $hasAgentLock) {
+    Write-Host "Another Watchtower Agent run is already active."
+    exit 0
+}
+
+$logDirectory = Join-Path $PSScriptRoot "logs"
+$transcriptStarted = $false
+
+try {
+    if (-not (Test-Path $logDirectory)) {
+        New-Item `
+            -Path $logDirectory `
+            -ItemType Directory `
+            -Force |
+        Out-Null
+    }
+
+    $logFileName = (
+        "watchtower-agent-{0}.log" -f
+        (Get-Date).ToString("yyyy-MM-dd")
+    )
+
+    $logPath = Join-Path $logDirectory $logFileName
+
+    Start-Transcript `
+        -Path $logPath `
+        -Append |
+    Out-Null
+
+    $transcriptStarted = $true
+
+    Get-ChildItem `
+        -Path $logDirectory `
+        -Filter "watchtower-agent-*.log" `
+        -File |
+    Where-Object {
+        $_.LastWriteTime -lt (Get-Date).AddDays(-14)
+    } |
+    Remove-Item -Force
+}
+catch {
+    Write-Warning "Agent logging could not be started."
+    Write-Warning $_.Exception.Message
+}
 
 $configPath = Join-Path $PSScriptRoot "agent-config.json"
 
@@ -9,6 +71,17 @@ if (-not (Test-Path $configPath)) {
 $config = Get-Content $configPath -Raw | ConvertFrom-Json
 $apiHeaders = @{
     "X-Watchtower-API-Key" = $config.api_key
+}
+
+$queueDirectory = Join-Path $PSScriptRoot "queue"
+$maximumQueuedEvents = 10000
+
+if (-not (Test-Path $queueDirectory)) {
+    New-Item `
+        -Path $queueDirectory `
+        -ItemType Directory `
+        -Force |
+    Out-Null
 }
 
 $statePath = Join-Path $PSScriptRoot "agent-state.json"
@@ -65,7 +138,9 @@ try {
 catch {
     Write-Host "Device registration failed." -ForegroundColor Red
     Write-Host $_.Exception.Message
-    exit 1
+    Write-Host (
+        "Continuing in offline queue mode."
+    ) -ForegroundColor Yellow
 }
 
 Write-Host ""
@@ -174,6 +249,62 @@ catch {
 }
 
 Write-Host ""
+Write-Host "Checking queued security events..." -ForegroundColor Cyan
+
+$queuedEventsSent = 0
+$retryEventsUrl = "$($config.api_base_url)/events/"
+
+$queuedEventFiles = @(
+    Get-ChildItem `
+        -Path $queueDirectory `
+        -Filter "*.json" `
+        -File |
+    Sort-Object CreationTime |
+    Select-Object -First 100
+)
+
+foreach ($queuedEventFile in $queuedEventFiles) {
+    try {
+        $queuedEventJson = Get-Content `
+            -Path $queuedEventFile.FullName `
+            -Raw
+
+        Invoke-RestMethod `
+            -Uri $retryEventsUrl `
+            -Method Post `
+            -Headers $apiHeaders `
+            -ContentType "application/json" `
+            -Body $queuedEventJson |
+        Out-Null
+
+        Remove-Item `
+            -Path $queuedEventFile.FullName `
+            -Force
+
+        $queuedEventsSent++
+    }
+    catch {
+        Write-Host (
+            "Queued event retry failed. " +
+            "It will remain queued."
+        ) -ForegroundColor Yellow
+
+        Write-Host $_.Exception.Message
+        break
+    }
+}
+
+Write-Host "Queued events sent: $queuedEventsSent"
+Write-Host "Events still queued: $(
+    (
+        Get-ChildItem `
+            -Path $queueDirectory `
+            -Filter '*.json' `
+            -File
+    ).Count
+)"
+
+Write-Host ""
 Write-Host "Collecting Windows Security events..." -ForegroundColor Cyan
 
 $startTime = (Get-Date).AddMinutes(
@@ -272,9 +403,65 @@ foreach ($securityEvent in $securityEvents) {
 }
     catch {
         $eventsFailed++
+        $sendErrorMessage = $_.Exception.Message
 
-        Write-Host "Failed to send Event ID $($securityEvent.Id)." -ForegroundColor Red
-        Write-Host $_.Exception.Message
+        try {
+            $queuedEventCount = @(
+                Get-ChildItem `
+                    -Path $queueDirectory `
+                    -Filter "*.json" `
+                    -File
+            ).Count
+
+            if (
+                $queuedEventCount -ge
+                $maximumQueuedEvents
+            ) {
+                throw (
+                    "The local event queue has reached " +
+                    "$maximumQueuedEvents events."
+                )
+            }
+            $queueFileName = (
+                "event-{0}-{1}.json" -f
+                $securityEvent.RecordId,
+                [guid]::NewGuid().ToString("N")
+            )
+
+            $queueFilePath = Join-Path `
+                $queueDirectory `
+                $queueFileName
+
+            $eventJson |
+                Set-Content `
+                    -Path $queueFilePath `
+                    -Encoding UTF8
+
+            Write-Host (
+                "Event ID $($securityEvent.Id) was queued."
+            ) -ForegroundColor Yellow
+            if (
+                $securityEvent.RecordId -gt
+                $highestSuccessfulRecordId
+            ) {
+                $highestSuccessfulRecordId = (
+                    $securityEvent.RecordId
+                )
+            }
+        }
+        catch {
+            Write-Host (
+                "Unable to save the failed event locally."
+            ) -ForegroundColor Red
+
+            Write-Host $_.Exception.Message
+        }
+
+        Write-Host (
+            "Failed to send Event ID $($securityEvent.Id)."
+        ) -ForegroundColor Red
+
+        Write-Host $sendErrorMessage
     }
 }
 

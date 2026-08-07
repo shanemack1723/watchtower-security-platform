@@ -20,3 +20,5 @@ Thumbs.db
 migration-test.db
 migration-test.db
 migration-test.db
+agent/logs/
+agent/queue/
