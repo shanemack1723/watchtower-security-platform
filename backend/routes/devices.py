@@ -25,7 +25,69 @@ router = APIRouter(
 
 
 DEVICE_OFFLINE_AFTER = timedelta(minutes=5)
+CPU_ALERT_THRESHOLD = 90.0
+MEMORY_ALERT_THRESHOLD = 90.0
+DISK_FREE_ALERT_THRESHOLD = 10.0
 DatabaseSession = Annotated[Session, Depends(get_database)]
+
+def update_device_health_alert(
+    database: Session,
+    device: Device,
+    *,
+    rule_id: str,
+    triggered: bool,
+    title: str,
+    description: str,
+    message: str,
+    raw_data: dict,
+) -> None:
+    active_alerts = database.scalars(
+        select(Alert)
+        .join(
+            SecurityEvent,
+            Alert.security_event_id == SecurityEvent.id,
+        )
+        .where(
+            SecurityEvent.device_id == device.id,
+            Alert.rule_id == rule_id,
+            Alert.status.in_(["open", "investigating"]),
+        )
+    ).all()
+
+    if not triggered:
+        for active_alert in active_alerts:
+            active_alert.status = "resolved"
+
+        return
+
+    if active_alerts:
+        return
+
+    health_event = SecurityEvent(
+        device_id=device.id,
+        windows_event_id=0,
+        record_id=None,
+        log_name="Watchtower",
+        provider="Watchtower Health Monitor",
+        level="Warning",
+        message=message,
+        occurred_at=datetime.now(timezone.utc),
+        raw_data=raw_data,
+    )
+
+    database.add(health_event)
+    database.flush()
+
+    database.add(
+        Alert(
+            security_event_id=health_event.id,
+            rule_id=rule_id,
+            title=title,
+            description=description,
+            severity="high",
+            status="open",
+        )
+    )
 
 
 @router.post(
@@ -211,6 +273,79 @@ def record_device_telemetry(
     )
 
     database.add(telemetry_record)
+    disk_free_percent = (
+        telemetry.disk_free_gb /
+        telemetry.disk_total_gb
+    ) * 100
+
+    update_device_health_alert(
+        database,
+        device,
+        rule_id="device-high-cpu",
+        triggered=(
+            telemetry.cpu_percent >= CPU_ALERT_THRESHOLD
+        ),
+        title=f"High CPU usage: {device.hostname}",
+        description=(
+            f"CPU usage reached {telemetry.cpu_percent:.1f}% "
+            f"on {device.hostname}."
+        ),
+        message=(
+            f"High CPU usage detected on {device.hostname}."
+        ),
+        raw_data={
+            "cpu_percent": telemetry.cpu_percent,
+            "threshold": CPU_ALERT_THRESHOLD,
+        },
+    )
+
+    update_device_health_alert(
+        database,
+        device,
+        rule_id="device-high-memory",
+        triggered=(
+            telemetry.memory_percent >=
+            MEMORY_ALERT_THRESHOLD
+        ),
+        title=f"High memory usage: {device.hostname}",
+        description=(
+            f"Memory usage reached "
+            f"{telemetry.memory_percent:.1f}% "
+            f"on {device.hostname}."
+        ),
+        message=(
+            f"High memory usage detected on {device.hostname}."
+        ),
+        raw_data={
+            "memory_percent": telemetry.memory_percent,
+            "threshold": MEMORY_ALERT_THRESHOLD,
+        },
+    )
+
+    update_device_health_alert(
+        database,
+        device,
+        rule_id="device-low-disk",
+        triggered=(
+            disk_free_percent <=
+            DISK_FREE_ALERT_THRESHOLD
+        ),
+        title=f"Low disk space: {device.hostname}",
+        description=(
+            f"Disk free space dropped to "
+            f"{disk_free_percent:.1f}% "
+            f"on {device.hostname}."
+        ),
+        message=(
+            f"Low disk space detected on {device.hostname}."
+        ),
+        raw_data={
+            "disk_free_gb": telemetry.disk_free_gb,
+            "disk_total_gb": telemetry.disk_total_gb,
+            "disk_free_percent": disk_free_percent,
+            "threshold": DISK_FREE_ALERT_THRESHOLD,
+        },
+    )
     database.commit()
     database.refresh(telemetry_record)
 

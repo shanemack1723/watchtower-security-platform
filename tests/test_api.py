@@ -212,6 +212,95 @@ def test_device_telemetry_workflow(client: TestClient):
     assert latest_response.status_code == 200
     assert latest_response.json()["id"] == telemetry_response.json()["id"]
 
+def test_device_health_alert_lifecycle(client: TestClient):
+    registration_response = register_test_device(client)
+
+    assert registration_response.status_code == 201
+
+    unhealthy_telemetry = {
+        "cpu_percent": 95.0,
+        "memory_percent": 92.0,
+        "disk_total_gb": 100.0,
+        "disk_free_gb": 5.0,
+        "uptime_seconds": 86400,
+    }
+
+    first_response = client.post(
+        f"/devices/{DEVICE_DATA['device_id']}/telemetry",
+        headers=AGENT_HEADERS,
+        json=unhealthy_telemetry,
+    )
+
+    assert first_response.status_code == 201
+
+    alerts_response = client.get("/alerts/")
+
+    assert alerts_response.status_code == 200
+
+    health_rule_ids = {
+        "device-high-cpu",
+        "device-high-memory",
+        "device-low-disk",
+    }
+
+    health_alerts = [
+        alert
+        for alert in alerts_response.json()
+        if alert["rule_id"] in health_rule_ids
+    ]
+
+    assert len(health_alerts) == 3
+    assert all(
+        alert["status"] == "open"
+        for alert in health_alerts
+    )
+
+    duplicate_response = client.post(
+        f"/devices/{DEVICE_DATA['device_id']}/telemetry",
+        headers=AGENT_HEADERS,
+        json=unhealthy_telemetry,
+    )
+
+    assert duplicate_response.status_code == 201
+
+    duplicate_alerts_response = client.get("/alerts/")
+
+    duplicate_health_alerts = [
+        alert
+        for alert in duplicate_alerts_response.json()
+        if alert["rule_id"] in health_rule_ids
+    ]
+
+    assert len(duplicate_health_alerts) == 3
+
+    recovery_response = client.post(
+        f"/devices/{DEVICE_DATA['device_id']}/telemetry",
+        headers=AGENT_HEADERS,
+        json={
+            "cpu_percent": 20.0,
+            "memory_percent": 40.0,
+            "disk_total_gb": 100.0,
+            "disk_free_gb": 60.0,
+            "uptime_seconds": 86500,
+        },
+    )
+
+    assert recovery_response.status_code == 201
+
+    recovered_alerts_response = client.get("/alerts/")
+
+    recovered_health_alerts = [
+        alert
+        for alert in recovered_alerts_response.json()
+        if alert["rule_id"] in health_rule_ids
+    ]
+
+    assert len(recovered_health_alerts) == 3
+    assert all(
+        alert["status"] == "resolved"
+        for alert in recovered_health_alerts
+    )
+
 def test_stale_device_is_marked_offline(
     client: TestClient,
     monkeypatch,
