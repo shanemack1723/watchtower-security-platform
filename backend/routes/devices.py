@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.auth_security import get_current_user
 from backend.database import get_database
-from backend.models import Device
+from backend.models import Alert, Device, SecurityEvent
 from backend.schemas import (
     DeviceHeartbeat,
     DeviceRegistration,
@@ -90,6 +90,40 @@ def list_devices(database: DatabaseSession):
         ):
             device.status = "offline"
             status_changed = True
+
+            offline_event = SecurityEvent(
+                device_id=device.id,
+                windows_event_id=0,
+                record_id=None,
+                log_name="Watchtower",
+                provider="Watchtower Device Monitor",
+                level="Warning",
+                message=(
+                    f"Device {device.hostname} stopped sending heartbeats."
+                ),
+                occurred_at=current_time,
+                raw_data={
+                    "device_id": device.device_id,
+                    "last_seen": last_seen.isoformat(),
+                },
+            )
+
+            database.add(offline_event)
+            database.flush()
+
+            database.add(
+                Alert(
+                    security_event_id=offline_event.id,
+                    rule_id="device-offline",
+                    title=f"Device offline: {device.hostname}",
+                    description=(
+                        f"No heartbeat was received from {device.hostname} "
+                        f"for at least five minutes."
+                    ),
+                    severity="high",
+                    status="open",
+                )
+            )
 
     if status_changed:
         database.commit()

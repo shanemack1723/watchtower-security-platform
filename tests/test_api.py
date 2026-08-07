@@ -201,6 +201,35 @@ def test_stale_device_is_marked_offline(
     assert len(response.json()) == 1
     assert response.json()[0]["status"] == "offline"
 
+    alerts_response = client.get("/alerts/")
+
+    assert alerts_response.status_code == 200
+
+    offline_alerts = [
+        alert
+        for alert in alerts_response.json()
+        if alert["rule_id"] == "device-offline"
+    ]
+
+    assert len(offline_alerts) == 1
+    assert offline_alerts[0]["title"] == "Device offline: Test-PC"
+    assert offline_alerts[0]["severity"] == "high"
+    assert offline_alerts[0]["status"] == "open"
+
+    second_devices_response = client.get("/devices/")
+
+    assert second_devices_response.status_code == 200
+
+    second_alerts_response = client.get("/alerts/")
+
+    second_offline_alerts = [
+        alert
+        for alert in second_alerts_response.json()
+        if alert["rule_id"] == "device-offline"
+    ]
+
+    assert len(second_offline_alerts) == 1
+
 
 def test_duplicate_event_is_not_stored_twice(client: TestClient):
     register_test_device(client)
