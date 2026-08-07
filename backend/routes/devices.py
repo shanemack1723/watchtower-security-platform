@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -379,4 +379,43 @@ def get_latest_device_telemetry(
         )
         .limit(1)
     )
+
+@router.get(
+    "/{device_id}/telemetry",
+    response_model=list[DeviceTelemetryResponse],
+    dependencies=[Depends(get_current_user)],
+)
+def get_device_telemetry_history(
+    device_id: str,
+    database: DatabaseSession,
+    limit: Annotated[
+        int,
+        Query(ge=1, le=500),
+    ] = 60,
+):
+    device = database.scalar(
+        select(Device).where(Device.device_id == device_id)
+    )
+
+    if device is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found.",
+        )
+
+    telemetry_records = list(
+        database.scalars(
+            select(DeviceTelemetry)
+            .where(DeviceTelemetry.device_id == device.id)
+            .order_by(
+                DeviceTelemetry.collected_at.desc(),
+                DeviceTelemetry.id.desc(),
+            )
+            .limit(limit)
+        ).all()
+    )
+
+    telemetry_records.reverse()
+
+    return telemetry_records
 

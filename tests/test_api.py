@@ -212,6 +212,32 @@ def test_device_telemetry_workflow(client: TestClient):
     assert latest_response.status_code == 200
     assert latest_response.json()["id"] == telemetry_response.json()["id"]
 
+    second_telemetry_response = client.post(
+        f"/devices/{DEVICE_DATA['device_id']}/telemetry",
+        headers=AGENT_HEADERS,
+        json={
+            "cpu_percent": 35.0,
+            "memory_percent": 64.0,
+            "disk_total_gb": 475.0,
+            "disk_free_gb": 200.0,
+            "uptime_seconds": 86500,
+        },
+    )
+
+    assert second_telemetry_response.status_code == 201
+
+    history_response = client.get(
+        f"/devices/{DEVICE_DATA['device_id']}/telemetry?limit=10"
+    )
+
+    assert history_response.status_code == 200
+    assert len(history_response.json()) == 2
+    assert history_response.json()[0]["id"] == telemetry_response.json()["id"]
+    assert (
+        history_response.json()[1]["id"]
+        == second_telemetry_response.json()["id"]
+    )
+
 def test_device_health_alert_lifecycle(client: TestClient):
     registration_response = register_test_device(client)
 

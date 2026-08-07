@@ -193,6 +193,89 @@ function renderEvents(events) {
     `).join("");
 }
 
+function buildSparkline(values, color) {
+    if (!Array.isArray(values) || values.length === 0) {
+        return "";
+    }
+
+    const safeValues = values.map((value) =>
+        Math.max(0, Math.min(100, Number(value) || 0))
+    );
+
+    const width = 100;
+    const height = 30;
+    const divisor = Math.max(1, safeValues.length - 1);
+
+    const points = safeValues
+        .map((value, index) => {
+            const x = (index / divisor) * width;
+            const y = height - (value / 100) * height;
+
+            return `${x.toFixed(2)},${y.toFixed(2)}`;
+        })
+        .join(" ");
+
+    return `
+        <svg
+            class="telemetry-sparkline"
+            viewBox="0 0 ${width} ${height}"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+        >
+            <polyline
+                points="${points}"
+                fill="none"
+                stroke="${color}"
+                stroke-width="2"
+                vector-effect="non-scaling-stroke"
+            ></polyline>
+        </svg>
+    `;
+}
+
+
+function renderTelemetryHistory(history) {
+    if (!Array.isArray(history) || history.length === 0) {
+        return `
+            <p class="telemetry-history-empty">
+                Waiting for telemetry history
+            </p>
+        `;
+    }
+
+    const cpuValues = history.map(
+        (record) => record.cpu_percent
+    );
+
+    const memoryValues = history.map(
+        (record) => record.memory_percent
+    );
+
+    const diskValues = history.map((record) =>
+        (
+            Number(record.disk_free_gb) /
+            Number(record.disk_total_gb)
+        ) * 100
+    );
+
+    return `
+        <div class="telemetry-history">
+            <div>
+                <span>CPU trend</span>
+                ${buildSparkline(cpuValues, "#4f8cff")}
+            </div>
+            <div>
+                <span>Memory trend</span>
+                ${buildSparkline(memoryValues, "#a855f7")}
+            </div>
+            <div>
+                <span>Disk free trend</span>
+                ${buildSparkline(diskValues, "#2dd4bf")}
+            </div>
+        </div>
+    `;
+}
+
 
 function renderDevices(devices) {
     if (devices.length === 0) {
@@ -259,6 +342,9 @@ function renderDevices(devices) {
             ` : `
                 <p>Telemetry: Waiting for agent data</p>
             `}
+            ${renderTelemetryHistory(
+                device.telemetryHistory
+            )}
         </article>
     `).join("");
 }
@@ -320,6 +406,11 @@ async function loadDashboard() {
                     `/devices/${encodeURIComponent(
                         device.device_id
                     )}/telemetry/latest`
+                );
+                device.telemetryHistory = await fetchJson(
+                    `/devices/${encodeURIComponent(
+                        device.device_id
+                    )}/telemetry?limit=30`
                 );
             })
         );
