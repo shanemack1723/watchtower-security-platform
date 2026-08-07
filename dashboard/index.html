@@ -169,6 +169,79 @@
                 <p class="empty-state">Loading devices...</p>
             </div>
         </section>
+<section id="device-details" class="panel" hidden>
+    <div class="panel-heading">
+        <div>
+            <p class="eyebrow">Endpoint details</p>
+            <h3 id="device-details-title">Device</h3>
+        </div>
+
+        <button
+            id="close-device-details"
+            class="secondary-button"
+            type="button"
+        >
+            Close
+        </button>
+    </div>
+
+    <div
+        id="device-details-summary"
+        class="device-details-summary"
+    ></div>
+
+    <div class="device-details-columns">
+        <div>
+            <h4>Recent alerts</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Alert</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="device-alerts-table-body">
+                        <tr>
+                            <td colspan="4">
+                                Select a device to view alerts.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div>
+            <h4>Recent security events</h4>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Event ID</th>
+                            <th>Provider</th>
+                            <th>Level</th>
+                            <th>Occurred</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="device-events-table-body">
+                        <tr>
+                            <td colspan="4">
+                                Select a device to view events.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
 <section id="audit" class="panel" hidden>
     <div class="panel-heading">
         <div>

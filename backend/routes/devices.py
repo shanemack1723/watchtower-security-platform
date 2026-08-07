@@ -14,6 +14,8 @@ from backend.schemas import (
     DeviceResponse,
     DeviceTelemetryCreate,
     DeviceTelemetryResponse,
+    AlertResponse,
+    SecurityEventResponse,
 )
 from backend.security import require_agent_api_key
 
@@ -429,4 +431,99 @@ def get_device_telemetry_history(
     telemetry_records.reverse()
 
     return telemetry_records
+
+@router.get(
+    "/{device_id}",
+    response_model=DeviceResponse,
+    dependencies=[Depends(get_current_user)],
+)
+def get_device_details(
+    device_id: str,
+    database: DatabaseSession,
+):
+    device = database.scalar(
+        select(Device).where(Device.device_id == device_id)
+    )
+
+    if device is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found.",
+        )
+
+    return device
+
+@router.get(
+    "/{device_id}/events",
+    response_model=list[SecurityEventResponse],
+    dependencies=[Depends(get_current_user)],
+)
+def get_device_events(
+    device_id: str,
+    database: DatabaseSession,
+    limit: Annotated[
+        int,
+        Query(ge=1, le=500),
+    ] = 100,
+):
+    device = database.scalar(
+        select(Device).where(Device.device_id == device_id)
+    )
+
+    if device is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found.",
+        )
+
+    return list(
+        database.scalars(
+            select(SecurityEvent)
+            .where(SecurityEvent.device_id == device.id)
+            .order_by(
+                SecurityEvent.occurred_at.desc(),
+                SecurityEvent.id.desc(),
+            )
+            .limit(limit)
+        ).all()
+    )
+
+@router.get(
+    "/{device_id}/alerts",
+    response_model=list[AlertResponse],
+    dependencies=[Depends(get_current_user)],
+)
+def get_device_alerts(
+    device_id: str,
+    database: DatabaseSession,
+    limit: Annotated[
+        int,
+        Query(ge=1, le=500),
+    ] = 100,
+):
+    device = database.scalar(
+        select(Device).where(Device.device_id == device_id)
+    )
+
+    if device is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found.",
+        )
+
+    return list(
+        database.scalars(
+            select(Alert)
+            .join(
+                SecurityEvent,
+                Alert.security_event_id == SecurityEvent.id,
+            )
+            .where(SecurityEvent.device_id == device.id)
+            .order_by(
+                Alert.created_at.desc(),
+                Alert.id.desc(),
+            )
+            .limit(limit)
+        ).all()
+    )
 

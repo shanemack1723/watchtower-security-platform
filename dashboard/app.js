@@ -5,6 +5,25 @@ const refreshButton = document.querySelector("#refresh-button");
 const sidebarStatus = document.querySelector(".sidebar-status");
 const statusDot = document.querySelector(".status-dot");
 
+const deviceDetailsSection = document.querySelector(
+    "#device-details"
+);
+const deviceDetailsTitle = document.querySelector(
+    "#device-details-title"
+);
+const deviceDetailsSummary = document.querySelector(
+    "#device-details-summary"
+);
+const deviceAlertsTableBody = document.querySelector(
+    "#device-alerts-table-body"
+);
+const deviceEventsTableBody = document.querySelector(
+    "#device-events-table-body"
+);
+const closeDeviceDetailsButton = document.querySelector(
+    "#close-device-details"
+);
+
 
 function escapeHtml(value) {
     const element = document.createElement("div");
@@ -288,7 +307,12 @@ function renderDevices(devices) {
     }
 
     deviceList.innerHTML = devices.map((device) => `
-        <article class="device-card">
+<article
+    class="device-card"
+    data-device-id="${escapeHtml(device.device_id)}"
+    tabindex="0"
+    role="button"
+>
             <div class="device-card-header">
                 <h4>${escapeHtml(device.hostname)}</h4>
 
@@ -348,6 +372,157 @@ function renderDevices(devices) {
         </article>
     `).join("");
 }
+
+async function openDeviceDetails(deviceId) {
+    deviceDetailsSection.hidden = false;
+    deviceDetailsTitle.textContent = "Loading device...";
+    deviceDetailsSummary.innerHTML = `
+        <p class="empty-state">Loading device details...</p>
+    `;
+    deviceAlertsTableBody.innerHTML = `
+        <tr>
+            <td colspan="4">Loading alerts...</td>
+        </tr>
+    `;
+    deviceEventsTableBody.innerHTML = `
+        <tr>
+            <td colspan="4">Loading events...</td>
+        </tr>
+    `;
+
+    const encodedDeviceId = encodeURIComponent(deviceId);
+
+    try {
+        const [device, telemetry, alerts, events] = await Promise.all([
+            fetchJson(`/devices/${encodedDeviceId}`),
+            fetchJson(`/devices/${encodedDeviceId}/telemetry/latest`),
+            fetchJson(`/devices/${encodedDeviceId}/alerts?limit=25`),
+            fetchJson(`/devices/${encodedDeviceId}/events?limit=25`),
+        ]);
+
+        deviceDetailsTitle.textContent = device.hostname;
+
+        deviceDetailsSummary.innerHTML = `
+            <div class="device-detail-stat">
+                <strong>Status</strong>
+                <span>${escapeHtml(device.status)}</span>
+            </div>
+            <div class="device-detail-stat">
+                <strong>Device ID</strong>
+                <span>${escapeHtml(device.device_id)}</span>
+            </div>
+            <div class="device-detail-stat">
+                <strong>Operating system</strong>
+                <span>${escapeHtml(device.operating_system)}</span>
+            </div>
+            <div class="device-detail-stat">
+                <strong>IP address</strong>
+                <span>${escapeHtml(device.ip_address)}</span>
+            </div>
+            <div class="device-detail-stat">
+                <strong>Agent version</strong>
+                <span>${escapeHtml(device.agent_version)}</span>
+            </div>
+            <div class="device-detail-stat">
+                <strong>Last seen</strong>
+                <span>${escapeHtml(formatDate(device.last_seen))}</span>
+            </div>
+            <div class="device-detail-stat">
+                <strong>CPU</strong>
+                <span>${Number(telemetry.cpu_percent).toFixed(1)}%</span>
+            </div>
+            <div class="device-detail-stat">
+                <strong>Memory</strong>
+                <span>${Number(telemetry.memory_percent).toFixed(1)}%</span>
+            </div>
+        `;
+
+        deviceAlertsTableBody.innerHTML = alerts.length
+            ? alerts.map((alert) => `
+                <tr>
+                    <td>${escapeHtml(alert.severity)}</td>
+                    <td>${escapeHtml(alert.title)}</td>
+                    <td>${escapeHtml(alert.status)}</td>
+                    <td>${escapeHtml(formatDate(alert.created_at))}</td>
+                </tr>
+            `).join("")
+            : `
+                <tr>
+                    <td colspan="4" class="empty-state">
+                        No alerts found for this device.
+                    </td>
+                </tr>
+            `;
+
+        deviceEventsTableBody.innerHTML = events.length
+            ? events.map((event) => `
+                <tr>
+                    <td>${escapeHtml(event.windows_event_id)}</td>
+                    <td>${escapeHtml(event.provider)}</td>
+                    <td>${escapeHtml(event.level)}</td>
+                    <td>${escapeHtml(formatDate(event.occurred_at))}</td>
+                </tr>
+            `).join("")
+            : `
+                <tr>
+                    <td colspan="4" class="empty-state">
+                        No security events found for this device.
+                    </td>
+                </tr>
+            `;
+
+        deviceDetailsSection.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+        });
+    } catch (error) {
+        console.error(error);
+        deviceDetailsTitle.textContent = "Device details";
+        deviceDetailsSummary.innerHTML = `
+            <p class="empty-state error-message">
+                Unable to load device details.
+            </p>
+        `;
+    }
+}
+
+deviceList.addEventListener("click", (event) => {
+    const deviceCard = event.target.closest(
+        ".device-card[data-device-id]"
+    );
+
+    if (!deviceCard) {
+        return;
+    }
+
+    openDeviceDetails(deviceCard.dataset.deviceId);
+});
+
+deviceList.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+        return;
+    }
+
+    const deviceCard = event.target.closest(
+        ".device-card[data-device-id]"
+    );
+
+    if (!deviceCard) {
+        return;
+    }
+
+    event.preventDefault();
+    openDeviceDetails(deviceCard.dataset.deviceId);
+});
+
+closeDeviceDetailsButton.addEventListener("click", () => {
+    deviceDetailsSection.hidden = true;
+
+    document.querySelector("#devices").scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+    });
+});
 
 
 function updateMetrics(alerts, events, devices) {

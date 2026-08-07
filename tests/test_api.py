@@ -182,6 +182,44 @@ def test_device_heartbeat_requires_api_key(client: TestClient):
 
     assert response.status_code == 401
 
+def test_device_detail_endpoints(client: TestClient):
+    registration_response = register_test_device(client)
+
+    assert registration_response.status_code == 201
+
+    event_response = create_failed_login_event(
+        client=client,
+        record_id=90001,
+        occurred_at="2026-08-06T20:00:00Z",
+    )
+
+    assert event_response.status_code == 201
+
+    details_response = client.get(
+        f"/devices/{DEVICE_DATA['device_id']}"
+    )
+
+    assert details_response.status_code == 200
+    assert details_response.json()["device_id"] == DEVICE_DATA["device_id"]
+
+    events_response = client.get(
+        f"/devices/{DEVICE_DATA['device_id']}/events"
+    )
+
+    assert events_response.status_code == 200
+    assert len(events_response.json()) == 1
+    assert (
+        events_response.json()[0]["device_id"]
+        == details_response.json()["id"]
+    )
+
+    alerts_response = client.get(
+        f"/devices/{DEVICE_DATA['device_id']}/alerts"
+    )
+
+    assert alerts_response.status_code == 200
+    assert isinstance(alerts_response.json(), list)
+
 def test_device_telemetry_workflow(client: TestClient):
     registration_response = register_test_device(client)
 
