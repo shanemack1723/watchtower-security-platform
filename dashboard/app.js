@@ -57,8 +57,6 @@ function shortenMessage(message, maximumLength = 100) {
 
 let redirectingToLogin = false;
 
-let redirectingToLogin = false;
-
 async function fetchJson(url) {
     const response = await fetch(url, {
         credentials: "same-origin",
