@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-latest
 
     env:
-      WATCHTOWER_AGENT_API_KEY: github-actions-test-key
+      WATCHTOWER_AGENT_API_KEY: github-actions-test-api-key-at-least-32-characters
       WATCHTOWER_JWT_SECRET: github-actions-jwt-test-secret-at-least-32-characters
       WATCHTOWER_DATABASE_URL: sqlite:///./watchtower-ci.db
 
@@ -56,7 +56,7 @@ jobs:
           --health-retries 5
 
     env:
-      WATCHTOWER_AGENT_API_KEY: github-actions-test-key
+      WATCHTOWER_AGENT_API_KEY: github-actions-test-api-key-at-least-32-characters
       WATCHTOWER_JWT_SECRET: github-actions-jwt-test-secret-at-least-32-characters
       WATCHTOWER_DATABASE_URL: postgresql+psycopg://watchtower:watchtower-test-password@localhost:5432/watchtower_test
 
